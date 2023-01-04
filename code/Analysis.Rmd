@@ -1,15 +1,55 @@
 LLiberies necessaries:
 ```{r}
-
+library('VIM') # Util per aplicar KNN
+library('dplyr') 
+library('missForest') # Valors nulls
 ```
 Integració i selecció de dades:
 ```{r}
 data_heart <- read.csv("../csv/heart.csv")
+
+num_fil <- dim(data_heart)[1]
+num_col <- dim(data_heart)[2]
+
+print("El data set te una mida:")
+sprintf("Files: %d", num_fil)
+sprintf("Columnes: %d", num_col)
 ```
 Neteja de dades:
 Les dades contenen zeros o elements buits:
 ```{r}
 
+# Calculem si tenim dades nulles
+colSums(is.na(data_heart))
+
+print("No hi ha valors nulls")
+
+# En cas de rebre noves dades, aquestes podrien contenir valors nulls o elements buits.
+
+# Per tant, procedim a "inventar" valors nulls per tal de fer un tractament de dades que en un futur ens permeti acceptar i tractar dades no completes.
+
+# Utilitzarem el metode KNN per suplir aquest valors i no "descartar" les dades
+
+# Enllaç de referencia: https://rpubs.com/harshaash/KNN_imputation
+# Enllaç dos: https://www.analyticsvidhya.com/blog/2016/03/tutorial-powerful-packages-imputing-missing-values/
+
+# Introduim valors aleatoris: https://search.r-project.org/CRAN/refmans/missForest/html/prodNA.html
+
+data_nulls <- data_heart
+
+data_nulls <- prodNA(data_nulls, noNA = 0.01) #1% de valors nulls
+
+print("Data amb valors nulls")
+colSums(is.na(data_nulls))
+
+# Realitzem els calculs de KNN
+data_knn_filled <- kNN(data_nulls, variable = names(data_nulls), k = 10)
+colSums(is.na(data_knn_filled))
+
+# Observem que data_knn_filled augmenta les variables a 28.
+# Ens quedem amb les dades utils, les que coincideixen amb el dataframe inicial
+data_knn_filtred <- subset(data_knn_filled, select = names(data_nulls))
+summary(data_knn_filtred)
 ```
 Identifica i gestiona valors extrems:
 ```{r}

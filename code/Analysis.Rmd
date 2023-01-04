@@ -1,7 +1,7 @@
 LLiberies necessaries:
 ```{r}
-library('VIM') # Util per aplicar KNN
-library('dplyr') 
+library('VIM')        # Util per aplicar KNN
+library('dplyr')      # Selects
 library('missForest') # Valors nulls
 ```
 Integració i selecció de dades:
@@ -58,7 +58,21 @@ Identifica i gestiona valors extrems:
 Anàlisi de les dades
 Selecció de dades:
 ```{r}
+# Obtenim les dades estadístiques bàsiques del dataset
+summary(data_heart)
 
+# Mostrem els primers 5 valors
+head(data_heart, n = 5)
+
+# Podem visualitzar al dataframe el mateix que ens explicava el dataset, que hi ha dades amb valors 0,1,2... per tant son variables categoriques que no estan catalogades com a tal.
+# Enllaç: https://sparkbyexamples.com/r-programming/r-select-function-from-dplyr/
+
+#data_numeric <- select(data_heart, variables_numeric) 
+colnames(data_heart)
+# "age","sex","cp","trtbps","chol","fbs","restecg","thalachh","exng","oldpeak","slp","caa","thall","output" 
+#data_categoric <- select(data_heart, variables_categoric) 
+
+# 
 ```
 Comprovació de la normalitat i homogeneïtat de la variància:
 ```{r}

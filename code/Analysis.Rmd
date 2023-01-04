@@ -1,0 +1,9 @@
+
+```{r}
+data_heart <- read.csv("dataset/heart.csv")
+```
+
+```{r}
+
+```
+

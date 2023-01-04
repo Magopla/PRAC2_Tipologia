@@ -1,8 +1,30 @@
-
+LLiberies necessaries:
 ```{r}
-data_heart <- read.csv("dataset/heart.csv")
-```
 
+```
+Integració i selecció de dades:
+```{r}
+data_heart <- read.csv("../csv/heart.csv")
+```
+Neteja de dades:
+Les dades contenen zeros o elements buits:
+```{r}
+
+```
+Identifica i gestiona valors extrems:
+```{r}
+
+```
+Anàlisi de les dades
+Selecció de dades:
+```{r}
+
+```
+Comprovació de la normalitat i homogeneïtat de la variància:
+```{r}
+
+```
+Proves estadístiques:
 ```{r}
 
 ```

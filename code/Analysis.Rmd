@@ -1,24 +1,121 @@
 LLiberies necessaries:
 ```{r}
-
+library('VIM')        # Util per aplicar KNN
+library('dplyr')      # Selects
+library('missForest') # Valors nulls
 ```
 Integració i selecció de dades:
 ```{r}
 data_heart <- read.csv("../csv/heart.csv")
+
+num_fil <- dim(data_heart)[1]
+num_col <- dim(data_heart)[2]
+
+print("El data set te una mida:")
+sprintf("Files: %d", num_fil)
+sprintf("Columnes: %d", num_col)
 ```
 Neteja de dades:
 Les dades contenen zeros o elements buits:
 ```{r}
 
+# Calculem si tenim dades nulles
+colSums(is.na(data_heart))
+
+print("No hi ha valors nulls")
+
+# En cas de rebre noves dades, aquestes podrien contenir valors nulls o elements buits.
+
+# Per tant, procedim a "inventar" valors nulls per tal de fer un tractament de dades que en un futur ens permeti acceptar i tractar dades no completes.
+
+# Utilitzarem el metode KNN per suplir aquest valors i no "descartar" les dades
+
+# Enllaç de referencia: https://rpubs.com/harshaash/KNN_imputation
+# Enllaç dos: https://www.analyticsvidhya.com/blog/2016/03/tutorial-powerful-packages-imputing-missing-values/
+
+# Introduim valors aleatoris: https://search.r-project.org/CRAN/refmans/missForest/html/prodNA.html
+
+data_nulls <- data_heart
+
+data_nulls <- prodNA(data_nulls, noNA = 0.01) #1% de valors nulls
+
+print("Data amb valors nulls")
+colSums(is.na(data_nulls))
+
+# Realitzem els calculs de KNN
+data_knn_filled <- kNN(data_nulls, variable = names(data_nulls), k = 10)
+colSums(is.na(data_knn_filled))
+
+# Observem que data_knn_filled augmenta les variables a 28.
+# Ens quedem amb les dades utils, les que coincideixen amb el dataframe inicial
+data_knn_filtred <- subset(data_knn_filled, select = names(data_nulls))
+summary(data_knn_filtred)
 ```
 Identifica i gestiona valors extrems:
+
+Per trobar els valors extrems, hem considerat que quan un valor es troba allunyat 3 desviacions estàndard respecte a la mitjana del conjunt és un outlier. Per trobar-los hem representant les dades en boxplots. Hem realitzat aquesta comprovació a les variables numeriques seguent:
+
 ```{r}
+data_numerical <- as.data.frame(data_heart %>%
+                  select("trtbps","thalachh","chol","oldpeak", "age"))
+```
+
+BoxPlot:
+```{r}
+boxplot <- boxplot(data_numerical)
+
+```
+Com es pot veure, les columnes oldpeak, chol, thalachh i trtbps tenen possibles outliers.
+Per eliminar-los, he creat la següents funcions per seleccionar aquells valor 3 desviacions standars allunyats:
+
+```{r}
+outliers = function(x) {
+
+  standardD <- sd(x)
+  mitjana <- mean(x)
+
+ #Upper Range
+ upper_limit = mitjana + 3*standardD
+ #Lower Range
+ lower_limit = mitjana - 3*standardD
+
+ x > upper_limit | x < lower_limit
+}
+# remove the outliers
+elimina_outliers <- function(df_outliers, cols = names(df_outliers)) {
+  for (col in cols) {
+    df_outliers<- df_outliers[!outliers(df_outliers[[col]]),]
+  }
+  df_outliers
+}
+```
+Apliquem aquesta funció i mostrem els nous boxplots, a on es pot veure la disminució de outliers:
+
+```{r}
+data_heart<-elimina_outliers(data_heart,c("trtbps","oldpeak" ,"thalachh", "chol"))
+data_numerical <- as.data.frame(data_heart %>%
+                  select("trtbps","thalachh","chol","oldpeak", "age"))
+boxplot <- boxplot(data_numerical)
 
 ```
 Anàlisi de les dades
 Selecció de dades:
 ```{r}
+# Obtenim les dades estadístiques bàsiques del dataset
+summary(data_heart)
 
+# Mostrem els primers 5 valors
+head(data_heart, n = 5)
+
+# Podem visualitzar al dataframe el mateix que ens explicava el dataset, que hi ha dades amb valors 0,1,2... per tant son variables categoriques que no estan catalogades com a tal.
+# Enllaç: https://sparkbyexamples.com/r-programming/r-select-function-from-dplyr/
+
+#data_numeric <- select(data_heart, variables_numeric)
+colnames(data_heart)
+# "age","sex","cp","trtbps","chol","fbs","restecg","thalachh","exng","oldpeak","slp","caa","thall","output"
+#data_categoric <- select(data_heart, variables_categoric)
+
+#
 ```
 Comprovació de la normalitat i homogeneïtat de la variància:
 ```{r}
@@ -28,4 +125,5 @@ Proves estadístiques:
 ```{r}
 
 ```
+
 

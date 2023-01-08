@@ -3,10 +3,11 @@ LLiberies necessaries:
 library('VIM')        # Util per aplicar KNN
 library('dplyr')      # Selects
 library('missForest') # Valors nulls
+library('car')
 ```
 Integració i selecció de dades:
 ```{r}
-data_heart <- read.csv("../csv/heart.csv")
+data_heart <- read.csv("./csv/heart.csv")
 
 num_fil <- dim(data_heart)[1]
 num_col <- dim(data_heart)[2]
@@ -56,7 +57,7 @@ Identifica i gestiona valors extrems:
 Per trobar els valors extrems, hem considerat que quan un valor es troba allunyat 3 desviacions estàndard respecte a la mitjana del conjunt és un outlier. Per trobar-los hem representant les dades en boxplots. Hem realitzat aquesta comprovació a les variables numeriques seguent:
 
 ```{r}
-data_numerical <- as.data.frame(data_heart %>%
+data_numerical <- as.data.frame(data_knn_filtred %>%
                   select("trtbps","thalachh","chol","oldpeak", "age"))
 ```
 
@@ -92,7 +93,7 @@ elimina_outliers <- function(df_outliers, cols = names(df_outliers)) {
 Apliquem aquesta funció i mostrem els nous boxplots, a on es pot veure la disminució de outliers:
 
 ```{r}
-data_heart<-elimina_outliers(data_heart,c("trtbps","oldpeak" ,"thalachh", "chol"))
+data_heart<-elimina_outliers(data_knn_filtred,c("trtbps","oldpeak" ,"thalachh", "chol"))
 data_numerical <- as.data.frame(data_heart %>%
                   select("trtbps","thalachh","chol","oldpeak", "age"))
 boxplot <- boxplot(data_numerical)
@@ -118,9 +119,92 @@ colnames(data_heart)
 #
 ```
 Comprovació de la normalitat i homogeneïtat de la variància:
+
+Comprovació de la normalitat:
 ```{r}
+columns = c("name","normalitat")
+df = data.frame(matrix(nrow = 0, ncol = length(columns)))
+colnames(df) = columns
+
+data_numerical <- as.data.frame(data_heart %>%
+                  select("trtbps","thalachh","chol","oldpeak", "age"))
+
+
+for (col in names(data_numerical)) {
+  normalitat <- TRUE
+
+  resultat <- shapiro.test(data_numerical[[col]])
+  if(resultat$p.value<0.05){
+    #No Normalitat
+    normalitat<-FALSE
+  }
+  df[nrow(df)+1,1] = col
+  df[nrow(df),2] = normalitat
+
+}
+print(df)
 
 ```
+TODO: caa
+Comprovació homoscedasticitat per la variable chol (unica variable amb normalitat en la variancia) amb els seguents grups:
+sex, cp, fbs, restecg, exng, slp, thall, output
+
+```{r}
+
+columns = c("name1","name2","homoscedasticitat")
+df = data.frame(matrix(nrow = 0, ncol = length(columns)))
+colnames(df) = columns
+
+chol <- data_heart[["chol"]]
+
+sex<-factor(data_heart$sex, levels = c(0,1), labels = c("male", "female"))
+cp<-factor(data_heart$cp, levels = c(0,1,2,3), labels = c("typical", "atypical", "no pain", "asymptomatic"))
+fbs <-factor(data_heart$fbs, levels = c(0,1), labels = c("false", "true"))
+restecg <-factor(data_heart$restecg, levels = c(0,1,2), labels = c("normal", "abnormal", "hypetropy"))
+exng <-factor(data_heart$exng, levels = c(0,1), labels = c("no", "yes"))
+slp <-factor(data_heart$exng, levels = c(0,1,2), labels = c("unslopping", "flat","downsloping"))
+thall <-factor(data_heart$thall, levels = c(0,1,2,3), labels = c("null", "fixed defect","normal", "reversable"))
+output <-factor(data_heart$output, levels = c(0,1), labels = c("less chance", "more chance"))
+data_categoriques <- data.frame(sex, cp, fbs, restecg, exng, slp, thall, output)
+
+for (col in names(data_categoriques)) {
+  homogeneitat <- TRUE
+  test <- leveneTest(chol~data_categoriques[[col]])
+
+  if(test$`Pr(>F)`[1]<0.05){
+    homogeneitat <- FALSE
+  }
+  df[nrow(df)+1,1:2] <- c("chol", col)
+  df[nrow(df),3] <- h
+
+}
+print(df)
+```
+
+```{r}
+
+data_numerical_nn <- as.data.frame(data_heart %>%
+                  select("trtbps","thalachh","oldpeak", "age"))
+
+for(numerical in names(data_numerical_nn)){
+  for (col in names(data_categoriques)) {
+    homogeneitat <- TRUE
+    test <- fligner.test(data_numerical_nn[[numerical]]~data_categoriques[[col]])
+
+    if(test$p.value<0.05){
+      homogeneitat <- FALSE
+    }
+    df[nrow(df)+1,1:2] <- c(numerical,col)
+    df[nrow(df),3] <- h
+
+  }
+}
+print(df)
+
+```
+
+
+
 Proves estadístiques:
 ```{r}
 

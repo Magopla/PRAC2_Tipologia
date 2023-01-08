@@ -4,10 +4,11 @@ library('VIM')        # Util per aplicar KNN
 library('dplyr')      # Selects
 library('missForest') # Valors nulls
 library('car')
+library('psych')      # corr plot
 ```
 Integració i selecció de dades:
 ```{r}
-data_heart <- read.csv("./csv/heart.csv")
+data_heart <- read.csv("../csv/heart.csv")
 
 num_fil <- dim(data_heart)[1]
 num_col <- dim(data_heart)[2]
@@ -111,13 +112,44 @@ head(data_heart, n = 5)
 # Podem visualitzar al dataframe el mateix que ens explicava el dataset, que hi ha dades amb valors 0,1,2... per tant son variables categoriques que no estan catalogades com a tal.
 # Enllaç: https://sparkbyexamples.com/r-programming/r-select-function-from-dplyr/
 
-#data_numeric <- select(data_heart, variables_numeric)
-colnames(data_heart)
-# "age","sex","cp","trtbps","chol","fbs","restecg","thalachh","exng","oldpeak","slp","caa","thall","output"
-#data_categoric <- select(data_heart, variables_categoric)
+# Analisis de correlacio, � quines dades tenen mes relacio entre elles i el output?
 
+corr_df <- cor(data_heart)
+
+corPlot(corr_df, main = "Matriu de correlaci�")
+
+# Observacions Correlacio
 #
+#
+#
+#
+# blablabla
+
+output_distr <- data_heart$output
+hist(output_distr)
+
+
 ```
+
+```{r}
+
+# Reestablim les dades ara sense els outliers.
+data_numerical <- as.data.frame(data_heart %>%
+                  select("trtbps","thalachh","chol","oldpeak", "age"))
+
+# Obtenim les variables categoriques i les transformem al tipus necesari
+# Link : https://gist.github.com/ramhiser/93fe37be439c480dc26c4bed8aab03dd
+
+data_categorical <- as.data.frame(data_heart %>%
+                  select("sex","cp","fbs","restecg", "exng", "slp", "caa", "thall", "output"))
+
+data_categorical <- data_categorical %>% mutate_if(is.numeric, as.factor)
+# Dades categoriques:
+
+data_categorical
+
+```
+
 Comprovació de la normalitat i homogeneïtat de la variància:
 
 Comprovació de la normalitat:

@@ -5,8 +5,31 @@ library('dplyr')      # Selects
 library('missForest') # Valors nulls
 library('car')
 library('psych')      # corr plot
+library('ggplot2')
 ```
+Dades del Dataset:
+
+Age : Age of the patient
+Sex : Sex of the patient
+exng: exercise induced angina (1 = yes; 0 = no)
+caa: number of major vessels (0-3)
+cp : Chest Pain type
+Value 1: typical angina
+Value 2: atypical angina
+Value 3: non-anginal pain
+Value 4: asymptomatic
+trtbps : resting blood pressure (in mm Hg)
+chol : cholestoral in mg/dl fetched via BMI sensor
+fbs : (fasting blood sugar > 120 mg/dl) (1 = true; 0 = false)
+rest_ecg : resting electrocardiographic results
+Value 0: normal
+Value 1: having ST-T wave abnormality (T wave inversions and/or ST elevation or depression of > 0.05 mV)
+Value 2: showing probable or definite left ventricular hypertrophy by Estes’ criteria
+thalach : maximum heart rate achieved
+target : 0 = less chance of heart attack 1 = more chance of heart attack
+
 Integració i selecció de dades:
+
 ```{r}
 data_heart <- read.csv("../csv/heart.csv")
 
@@ -16,6 +39,7 @@ num_col <- dim(data_heart)[2]
 print("El data set te una mida:")
 sprintf("Files: %d", num_fil)
 sprintf("Columnes: %d", num_col)
+
 ```
 Neteja de dades:
 Les dades contenen zeros o elements buits:
@@ -112,7 +136,7 @@ head(data_heart, n = 5)
 # Podem visualitzar al dataframe el mateix que ens explicava el dataset, que hi ha dades amb valors 0,1,2... per tant son variables categoriques que no estan catalogades com a tal.
 # Enllaç: https://sparkbyexamples.com/r-programming/r-select-function-from-dplyr/
 
-# Analisis de correlacio, � quines dades tenen mes relacio entre elles i el output?
+# Analisis de correlacio, quines dades tenen mes relacio entre elles i el output?
 
 corr_df <- cor(data_heart)
 
@@ -120,13 +144,10 @@ corPlot(corr_df, main = "Matriu de correlaci�")
 
 # Observacions Correlacio
 #
-#
+# Max correlacio vs Min Correlacio
 #
 #
 # blablabla
-
-output_distr <- data_heart$output
-hist(output_distr)
 
 
 ```
@@ -143,7 +164,31 @@ data_numerical <- as.data.frame(data_heart %>%
 data_categorical <- as.data.frame(data_heart %>%
                   select("sex","cp","fbs","restecg", "exng", "slp", "caa", "thall", "output"))
 
+
 data_categorical <- data_categorical %>% mutate_if(is.numeric, as.factor)
+
+# Representem graficament les diferents variables categoriques
+ggplot(data = data_categorical, aes(x = sex))+geom_bar()
+ggplot(data = data_categorical, aes(x = cp))+geom_bar()
+ggplot(data = data_categorical, aes(x = fbs))+geom_bar()
+ggplot(data = data_categorical, aes(x = restecg))+geom_bar()
+ggplot(data = data_categorical, aes(x = exng))+geom_bar()
+ggplot(data = data_categorical, aes(x = slp))+geom_bar()
+ggplot(data = data_categorical, aes(x = caa))+geom_bar()
+ggplot(data = data_categorical, aes(x = thall))+geom_bar()
+ggplot(data = data_categorical, aes(x = output))+geom_bar()
+
+# Representem les variables dividides per genere per veure si hi ha diferencies en les variables que sortissin a la corrMatrix (?):
+# Error: https://stackoverflow.com/questions/24895575/ggplot2-bar-plot-with-two-categorical-variables
+ggplot(data = data_categorical, aes(x = sex, after_stat(count) ))+geom_bar(aes(fill = output), position = "dodge")
+ggplot(data = data_categorical, aes(x = cp, after_stat(count) ))+geom_bar(aes(fill = output), position = "dodge")
+ggplot(data = data_categorical, aes(x = fbs, after_stat(count) ))+geom_bar(aes(fill = output), position = "dodge")
+ggplot(data = data_categorical, aes(x = restecg, after_stat(count) ))+geom_bar(aes(fill = output), position = "dodge")
+ggplot(data = data_categorical, aes(x = exng, after_stat(count) ))+geom_bar(aes(fill = output), position = "dodge")
+ggplot(data = data_categorical, aes(x = slp, after_stat(count) ))+geom_bar(aes(fill = output), position = "dodge")
+ggplot(data = data_categorical, aes(x = caa, after_stat(count) ))+geom_bar(aes(fill = output), position = "dodge")
+ggplot(data = data_categorical, aes(x = thall, after_stat(count) ))+geom_bar(aes(fill = output), position = "dodge")
+
 # Dades categoriques:
 
 data_categorical

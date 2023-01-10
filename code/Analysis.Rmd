@@ -8,12 +8,15 @@ output:
 
 # LLiberies necessaries:
 ```{r}
-library('VIM')        # Util per aplicar KNN
-library('dplyr')      # Selects
-library('missForest') # Valors nulls
-library('car')
-library('psych')      # corr plot
-library('ggplot2')
+if (!require('VIM')) install.packages('VIM');library('VIM')                       
+if (!require('dplyr')) install.packages('dplyr');library('dplyr')                 
+if (!require('missForest')) install.packages('missForest');library('missForest')  
+if (!require('car')) install.packages('car');library('car')
+if (!require('psych')) install.packages('psych');library('psych')      
+if (!require('ggplot2')) install.packages('ggplot2');library('ggplot2')
+if (!require('caTools')) install.packages('caTools');library('caTools')
+if (!require('e1071')) install.packages('e1071');library('e1071')
+if (!require('caret')) install.packages('caret');library('caret')
 ```
 # Descripció del Dataset:
 El dataset utilitzat intenta respondre la pregunta de quins factors influeixen en la salut cardiovascular. Aquest consisteix en les dades mèdiques d'un conjunt de pacients.
@@ -41,7 +44,7 @@ target : 0 = less chance of heart attack 1 = more chance of heart attack
 # Integració i selecció de dades:
 
 ```{r}
-data_heart <- read.csv("./heart.csv")
+data_heart <- read.csv("../csv/heart.csv")
 
 num_fil <- dim(data_heart)[1]
 num_col <- dim(data_heart)[2]
@@ -51,29 +54,31 @@ sprintf("Files: %d", num_fil)
 sprintf("Columnes: %d", num_col)
 
 ```
+
+
+
 # Neteja de dades:
 Les dades contenen zeros o elements buits:
 ```{r}
-
 # Calculem si tenim dades nulles
 colSums(is.na(data_heart))
 
 print("No hi ha valors nulls")
+```
 
-# En cas de rebre noves dades, aquestes podrien contenir valors nulls o elements buits.
+En cas de rebre noves dades, aquestes podrien contenir valors nulls o elements buits.
+Per tant, procedim a "inventar" valors nulls per tal de fer un tractament de dades que en un futur ens permeti acceptar i tractar dades no completes.
 
-# Per tant, procedim a "inventar" valors nulls per tal de fer un tractament de dades que en un futur ens permeti acceptar i tractar dades no completes.
-
-# Utilitzarem el metode KNN per suplir aquest valors i no "descartar" les dades
-
+## Utilitzarem el metode KNN per suplir aquest valors i no "descartar" les dades
+```{r}
 # Enllaç de referencia: https://rpubs.com/harshaash/KNN_imputation
 # Enllaç dos: https://www.analyticsvidhya.com/blog/2016/03/tutorial-powerful-packages-imputing-missing-values/
 
 # Introduim valors aleatoris: https://search.r-project.org/CRAN/refmans/missForest/html/prodNA.html
-
 data_nulls <- data_heart
 
-data_nulls <- prodNA(data_nulls, noNA = 0.01) #1% de valors nulls
+# 1% de valors nulls
+data_nulls <- prodNA(data_nulls, noNA = 0.01) 
 
 print("Data amb valors nulls")
 colSums(is.na(data_nulls))
@@ -136,32 +141,34 @@ boxplot <- boxplot(data_numerical)
 ```
 # Anàlisi de les dades
 ## Selecció de dades:
+
+Obtenim les dades estadístiques bàsiques del dataset
 ```{r}
-# Obtenim les dades estadístiques bàsiques del dataset
 summary(data_heart)
 
 # Mostrem els primers 5 valors
 head(data_heart, n = 5)
+```
+Aprofitarem que totes les variables estan introduides com a Integers per tal d'obtenir una matriu de correlació i veure quins atributs tenen major correlació amb el resultat i per tant, semblen més rellevants a analitzar.
 
-# Podem visualitzar al dataframe el mateix que ens explicava el dataset, que hi ha dades amb valors 0,1,2... per tant son variables categoriques que no estan catalogades com a tal.
+```{r}
 # Enllaç: https://sparkbyexamples.com/r-programming/r-select-function-from-dplyr/
 
 # Analisis de correlacio, quines dades tenen mes relacio entre elles i el output?
 
 corr_df <- cor(data_heart)
 
-corPlot(corr_df, main = "Matriu de correlaci�")
-
-# Observacions Correlacio
-#
-# Max correlacio vs Min Correlacio
-#
-#
-# blablabla
-
+corPlot(corr_df, main = "Matriu de correlacio")
 
 ```
+Observem en la matriu de correlació que:
+- La variable "sex" no té força correlació amb cap dels atributs, sembla que no es un factor rellevant. Tot i aixì, sorpren que a nivell "general" la percepció de la població és que hi ha més homes amb aquest problema.
+- La variable "edad" sembla no influir gairé en les variables 'categoriques'.
+- La variable "output" esta correlativament influenciada per "cp" i "thalachh".
 
+Per tant, semblem tenir algunes hipotesis que podem comprobar, ¿Hi ha més problemes cardiovasculars entre homes o entre dones? 
+
+Seguim amb l'anàlisis preliminar per visualitzar gràficament les variables categoriques i veure si hi ha relació o no amb l'output.
 ```{r}
 
 # Reestablim les dades ara sense els outliers.
@@ -204,6 +211,7 @@ ggplot(data = data_categorical, aes(x = thall, after_stat(count) ))+geom_bar(aes
 data_categorical
 
 ```
+Veiem forçes valors que poden deures a les poques mostres del dataset (14 variables per 300 mostres, no són gaires), tot i així sembla que hi ha més del doble de pacients femenins que masculins, per tant les dades son 100~200). 
 
 ## Comprovació de la normalitat i homogeneïtat de la variància:
 
@@ -291,11 +299,55 @@ print(df)
 
 ```
 
-
-
 # Proves estadístiques:
+
+# Contrast d'hipotesis
+El contrast d'hipòtesis el farem per determinar el si el gènere influeix.
+
+Es planteja el següent contrast d'hipòtesis:
+
+- Hipòtesi nul·la: La probabilitat de patir malaltia és independent al gènere.
+- Hhipòtesi alternativa: La probabilitat de patir malalties és major en homes. 
+```{r}
+home_mostra <- data_heart[data_heart$sex == 0,]$output
+dona_mostra <- data_heart[data_heart$sex == 1,]$output
+
+t.test(dona_mostra, home_mostra, alternative = 'less')
+```
+
 ```{r}
 
+# Recuperem les dades numeriques i les normalitzem
+data_numerical_norm <- scale(data_numerical)
+data_categorical
+
+#combinem les dades i creem el dataframe definitiu amb el que farem els models
+data_model = cbind(data_numerical_norm, data_categorical)
+
+# Dividirem el dataset en train - test
+set.seed(123)
+split = sample.split(data_model$output, SplitRatio = 0.80)
+train_set = subset(data_model, split == TRUE)
+test_set = subset(data_model, split == FALSE)
+```
+```{r}
+# https://www.rdocumentation.org/packages/e1071/versions/1.7-12/topics/naiveBayes
+set.seed(123)
+model_nB = naiveBayes(x = train_set, y = train_set$output)
+y_pred = predict(model_nB, newdata = test_set)
+
+y_pred
+cm_results = confusionMatrix(table(test_set$output, y_pred))
+print(cm_results)
+```
+```{r}
+# https://rpubs.com/njvijay/16444
+set.seed(123)
+
+knn_fit <- train(output ~., data = train_set, method = "knn")
+knn_fit
+
+plot(knn_fit)
 ```
 
 

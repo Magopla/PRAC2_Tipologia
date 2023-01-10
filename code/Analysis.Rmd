@@ -1,12 +1,13 @@
 ---
 title: "Practica 2"
+author: Marc González Planes i Maria Sunyer Rigau
 output:
   html_document:
     toc: true
     theme: united
 ---
 
-# LLiberies necessaries:
+# LLiberies necessaries
 ```{r}
 if (!require('VIM')) install.packages('VIM');library('VIM')                       
 if (!require('dplyr')) install.packages('dplyr');library('dplyr')                 
@@ -18,33 +19,50 @@ if (!require('caTools')) install.packages('caTools');library('caTools')
 if (!require('e1071')) install.packages('e1071');library('e1071')
 if (!require('caret')) install.packages('caret');library('caret')
 ```
-# Descripció del Dataset:
+# Descripció del Dataset
 El dataset utilitzat intenta respondre la pregunta de quins factors influeixen en la salut cardiovascular. Aquest consisteix en les dades mèdiques d'un conjunt de pacients.
-El dataset és el recomanat a l'anunciat de la pràctica.
+El dataset utilitzat consisteix en diferents parametres mèdics els quals s'utilitcen per determinar riscos cardiovascolars. El nostre analisis intenta donar resposta a dues preguntes:
+- Quins són els parametres més i menys rellevants?
+- Podem predir el risc d'un pacient amb les dades actuals?
 
 Age : Age of the patient
+
 Sex : Sex of the patient
+
 exng: exercise induced angina (1 = yes; 0 = no)
+
 caa: number of major vessels (0-3)
+
 cp : Chest Pain type
+
 Value 1: typical angina
+
 Value 2: atypical angina
+
 Value 3: non-anginal pain
+
 Value 4: asymptomatic
+
 trtbps : resting blood pressure (in mm Hg)
+
 chol : cholestoral in mg/dl fetched via BMI sensor
+
 fbs : (fasting blood sugar > 120 mg/dl) (1 = true; 0 = false)
+
 rest_ecg : resting electrocardiographic results
-Value 0: normal
-Value 1: having ST-T wave abnormality (T wave inversions and/or ST elevation or depression of > 0.05 mV)
-Value 2: showing probable or definite left ventricular hypertrophy by Estes’ criteria
+
+  - Value 0: normal
+  - Value 1: having ST-T wave abnormality (T wave inversions and/or ST elevation or depression of > 0.05 mV)
+  - Value 2: showing probable or definite left ventricular hypertrophy by Estes’ criteria
+
 thalach : maximum heart rate achieved
+
 target : 0 = less chance of heart attack 1 = more chance of heart attack
 
-# Integració i selecció de dades:
+# Integració i selecció de dades
 
 ```{r}
-data_heart <- read.csv("../csv/heart.csv")
+data_heart <- read.csv("./heart.csv")
 
 num_fil <- dim(data_heart)[1]
 num_col <- dim(data_heart)[2]
@@ -57,7 +75,7 @@ sprintf("Columnes: %d", num_col)
 
 
 
-# Neteja de dades:
+# Neteja de dades
 Les dades contenen zeros o elements buits:
 ```{r}
 # Calculem si tenim dades nulles
@@ -69,7 +87,8 @@ print("No hi ha valors nulls")
 En cas de rebre noves dades, aquestes podrien contenir valors nulls o elements buits.
 Per tant, procedim a "inventar" valors nulls per tal de fer un tractament de dades que en un futur ens permeti acceptar i tractar dades no completes.
 
-## Utilitzarem el metode KNN per suplir aquest valors i no "descartar" les dades
+## KNN per suplir valors
+Utilitzarem el metode KNN per suplir aquest valors i no "descartar" les dades.
 ```{r}
 # Enllaç de referencia: https://rpubs.com/harshaash/KNN_imputation
 # Enllaç dos: https://www.analyticsvidhya.com/blog/2016/03/tutorial-powerful-packages-imputing-missing-values/
@@ -92,7 +111,7 @@ colSums(is.na(data_knn_filled))
 data_knn_filtred <- subset(data_knn_filled, select = names(data_nulls))
 summary(data_knn_filtred)
 ```
-# Identifica i gestiona valors extrems:
+# Identifica i gestiona valors extrems
 
 Per trobar els valors extrems, hem considerat que quan un valor es troba allunyat 3 desviacions estàndard respecte a la mitjana del conjunt és un outlier. Per trobar-los hem representant les dades en boxplots. Hem realitzat aquesta comprovació a les variables numeriques seguent:
 
@@ -140,7 +159,8 @@ boxplot <- boxplot(data_numerical)
 
 ```
 # Anàlisi de les dades
-## Selecció de dades:
+
+## Selecció de dades
 
 Obtenim les dades estadístiques bàsiques del dataset
 ```{r}
@@ -206,16 +226,14 @@ ggplot(data = data_categorical, aes(x = slp, after_stat(count) ))+geom_bar(aes(f
 ggplot(data = data_categorical, aes(x = caa, after_stat(count) ))+geom_bar(aes(fill = output), position = "dodge")
 ggplot(data = data_categorical, aes(x = thall, after_stat(count) ))+geom_bar(aes(fill = output), position = "dodge")
 
-# Dades categoriques:
 
-data_categorical
 
 ```
 Veiem forçes valors que poden deures a les poques mostres del dataset (14 variables per 300 mostres, no són gaires), tot i així sembla que hi ha més del doble de pacients femenins que masculins, per tant les dades son 100~200). 
 
 ## Comprovació de la normalitat i homogeneïtat de la variància:
 
-### Comprovació de la normalitat:
+### Comprovació de la normalitat
 ```{r}
 columns = c("name","normalitat")
 df = data.frame(matrix(nrow = 0, ncol = length(columns)))
@@ -252,20 +270,11 @@ colnames(df) = columns
 
 chol <- data_heart[["chol"]]
 
-sex<-factor(data_heart$sex, levels = c(0,1), labels = c("male", "female"))
-cp<-factor(data_heart$cp, levels = c(0,1,2,3), labels = c("typical", "atypical", "no pain", "asymptomatic"))
-fbs <-factor(data_heart$fbs, levels = c(0,1), labels = c("false", "true"))
-restecg <-factor(data_heart$restecg, levels = c(0,1,2), labels = c("normal", "abnormal", "hypetropy"))
-exng <-factor(data_heart$exng, levels = c(0,1), labels = c("no", "yes"))
-slp <-factor(data_heart$exng, levels = c(0,1,2), labels = c("unslopping", "flat","downsloping"))
-thall <-factor(data_heart$thall, levels = c(0,1,2,3), labels = c("null", "fixed defect","normal", "reversable"))
-output <-factor(data_heart$output, levels = c(0,1), labels = c("less chance", "more chance"))
-caa <-factor(data_heart$caa, levels = c(0,1,2,3), labels = c("0", "1", "2", "3"))
-data_categoriques <- data.frame(sex, cp, fbs, restecg, exng, slp, thall, output)
 
-for (col in names(data_categoriques)) {
+
+for (col in names(data_categorical)) {
   homogeneitat <- TRUE
-  test <- leveneTest(chol~data_categoriques[[col]])
+  test <- leveneTest(chol~data_categorical[[col]])
 
   if(test$`Pr(>F)`[1]<0.05){
     homogeneitat <- FALSE
@@ -283,9 +292,9 @@ data_numerical_nn <- as.data.frame(data_heart %>%
                   select("trtbps","thalachh","oldpeak", "age"))
 
 for(numerical in names(data_numerical_nn)){
-  for (col in names(data_categoriques)) {
+  for (col in names(data_categorical)) {
     homogeneitat <- TRUE
-    test <- fligner.test(data_numerical_nn[[numerical]]~data_categoriques[[col]])
+    test <- fligner.test(data_numerical_nn[[numerical]]~data_categorical[[col]])
 
     if(test$p.value<0.05){
       homogeneitat <- FALSE
@@ -301,13 +310,14 @@ print(df)
 
 # Proves estadístiques:
 
-# Contrast d'hipotesis
+## Contrast d'hipotesis
 El contrast d'hipòtesis el farem per determinar el si el gènere influeix.
 
 Es planteja el següent contrast d'hipòtesis:
 
 - Hipòtesi nul·la: La probabilitat de patir malaltia és independent al gènere.
-- Hhipòtesi alternativa: La probabilitat de patir malalties és major en homes. 
+- Hhipòtesi alternativa: La probabilitat de patir malalties és major en homes.
+
 ```{r}
 home_mostra <- data_heart[data_heart$sex == 0,]$output
 dona_mostra <- data_heart[data_heart$sex == 1,]$output
@@ -315,6 +325,12 @@ dona_mostra <- data_heart[data_heart$sex == 1,]$output
 t.test(dona_mostra, home_mostra, alternative = 'less')
 ```
 
+Com es pot veure, es pot confirmar la hipòtesis plantejada ja que el gènere influeix. Aquest resultat es podia intuir en els grafic entre sex i output.
+
+
+## Models
+
+### Preperació de les dades
 ```{r}
 
 # Recuperem les dades numeriques i les normalitzem
@@ -330,16 +346,28 @@ split = sample.split(data_model$output, SplitRatio = 0.80)
 train_set = subset(data_model, split == TRUE)
 test_set = subset(data_model, split == FALSE)
 ```
+
+
+
+### Naive Bayes
+
+Utilitzem el model Naive Bayes per predir la classificació dels pacients. Per tant podriem donar resposta a la pregunta formalitzada a l'inici de la pràctica "Podem predir el risc d'un pacient de patir problemes cardiacs?".
 ```{r}
 # https://www.rdocumentation.org/packages/e1071/versions/1.7-12/topics/naiveBayes
 set.seed(123)
-model_nB = naiveBayes(x = train_set, y = train_set$output)
+model_nB = naiveBayes(output~., data=train_set)
 y_pred = predict(model_nB, newdata = test_set)
 
 y_pred
 cm_results = confusionMatrix(table(test_set$output, y_pred))
 print(cm_results)
 ```
+Com podem veure, amb aquest model hem aconseguit una accuracy de 0.7195.
+
+### KNN
+
+Utilitzem el model KNN per predir la classificació dels pacients. Per tant podriem donar resposta a la pregunta formalitzada a l'inici de la pràctica "Podem predir el risc d'un pacient de patir problemes cardiacs?". Utilitzem aquest algoritme perque és un algoritme classificador i ens podria servir per agrupar diferents tipus de pacients i fer diferents seguiments medics.
+
 ```{r}
 # https://rpubs.com/njvijay/16444
 set.seed(123)
@@ -349,5 +377,32 @@ knn_fit
 
 plot(knn_fit)
 ```
+
+# Extracció Dataset
+```{r}
+res <- c(data_heart, "./heartClean.csv", row.names=TRUE)
+
+```
+
+
+# Conclusió:
+Inicialment voliem donar resposta als parametres més importants i si podiem preveure nous pacients amb èxit.
+
+Creiem que amb els resultats de la matriu de correlació i els anàlisis fets a les variables tant númeriques com categoriques, sabem que els atributs cp i thalachh tenen més impacte.
+
+En quant a preveure nous pacients, concluim creient que és un camí possible sempre que hi hagi col·laboració d'experts en el domini, i que les mostres de dades siguin molt més representatives, ja que hi havia força dones en comparació i les franjes d'edad estaven poc representades (impedint comprovar que pasa en diferents franjes d'edat).
+
+Considerem interesant aplicar diferents algoritmes com el KNN per pacients amb una determinada edat i veure si l'accuracy augmenta o no..
+
+Hi ha per tant moltes preguntes a fer amb aquestes dades, esperem que amb el temps es doni resposta i la ciencia de dades sigui clau en el desenvolupament de la salut de les persones.
+
+# Contribucions
+
+| Contribucions               | Firma                        |
+|-----------------------------|------------------------------|
+| Investigació prèvia         | Marc González i Maria Sunyer |
+| Redacció de les respostes   | Marc González i Maria Sunyer |
+| Desenvolupament del codi    | Marc González i Maria Sunyer |
+| Participació al vídeo       | Marc González i Maria Sunyer |
 
 

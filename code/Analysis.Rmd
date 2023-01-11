@@ -8,7 +8,7 @@ output:
 ---
 
 # LLiberies necessaries
-```{r}
+```{r, message=FALSE}
 if (!require('VIM')) install.packages('VIM');library('VIM')                       
 if (!require('dplyr')) install.packages('dplyr');library('dplyr')                 
 if (!require('missForest')) install.packages('missForest');library('missForest')  
@@ -121,7 +121,7 @@ data_numerical <- as.data.frame(data_knn_filtred %>%
 ```
 
 BoxPlot:
-```{r}
+```{r, fig.width=10}
 boxplot <- boxplot(data_numerical)
 
 ```
@@ -151,7 +151,7 @@ elimina_outliers <- function(df_outliers, cols = names(df_outliers)) {
 ```
 Apliquem aquesta funció i mostrem els nous boxplots, a on es pot veure la disminució de outliers:
 
-```{r}
+```{r, fig.width=10}
 data_heart<-elimina_outliers(data_knn_filtred,c("trtbps","oldpeak" ,"thalachh", "chol"))
 data_numerical <- as.data.frame(data_heart %>%
                   select("trtbps","thalachh","chol","oldpeak", "age"))
@@ -173,11 +173,8 @@ Aprofitarem que totes les variables estan introduides com a Integers per tal d'o
 
 ```{r}
 # Enllaç: https://sparkbyexamples.com/r-programming/r-select-function-from-dplyr/
-
 # Analisis de correlacio, quines dades tenen mes relacio entre elles i el output?
-
 corr_df <- cor(data_heart)
-
 corPlot(corr_df, main = "Matriu de correlacio")
 
 ```
@@ -189,7 +186,7 @@ Observem en la matriu de correlació que:
 Per tant, semblem tenir algunes hipotesis que podem comprobar, ¿Hi ha més problemes cardiovasculars entre homes o entre dones? 
 
 Seguim amb l'anàlisis preliminar per visualitzar gràficament les variables categoriques i veure si hi ha relació o no amb l'output.
-```{r}
+```{r, fig.width = 4, fig.height = 2}
 
 # Reestablim les dades ara sense els outliers.
 data_numerical <- as.data.frame(data_heart %>%
@@ -200,7 +197,6 @@ data_numerical <- as.data.frame(data_heart %>%
 
 data_categorical <- as.data.frame(data_heart %>%
                   select("sex","cp","fbs","restecg", "exng", "slp", "caa", "thall", "output"))
-
 
 data_categorical <- data_categorical %>% mutate_if(is.numeric, as.factor)
 
@@ -225,9 +221,6 @@ ggplot(data = data_categorical, aes(x = exng, after_stat(count) ))+geom_bar(aes(
 ggplot(data = data_categorical, aes(x = slp, after_stat(count) ))+geom_bar(aes(fill = output), position = "dodge")
 ggplot(data = data_categorical, aes(x = caa, after_stat(count) ))+geom_bar(aes(fill = output), position = "dodge")
 ggplot(data = data_categorical, aes(x = thall, after_stat(count) ))+geom_bar(aes(fill = output), position = "dodge")
-
-
-
 ```
 Veiem forçes valors que poden deures a les poques mostres del dataset (14 variables per 300 mostres, no són gaires), tot i així sembla que hi ha més del doble de pacients femenins que masculins, per tant les dades son 100~200). 
 
@@ -238,14 +231,9 @@ Veiem forçes valors que poden deures a les poques mostres del dataset (14 varia
 columns = c("name","normalitat")
 df = data.frame(matrix(nrow = 0, ncol = length(columns)))
 colnames(df) = columns
-
-data_numerical <- as.data.frame(data_heart %>%
-                  select("trtbps","thalachh","chol","oldpeak", "age"))
-
-
+data_numerical <- as.data.frame(data_heart %>% select("trtbps","thalachh","chol","oldpeak", "age"))
 for (col in names(data_numerical)) {
   normalitat <- TRUE
-
   resultat <- shapiro.test(data_numerical[[col]])
   if(resultat$p.value<0.05){
     #No Normalitat
@@ -253,10 +241,8 @@ for (col in names(data_numerical)) {
   }
   df[nrow(df)+1,1] = col
   df[nrow(df),2] = normalitat
-
 }
 print(df)
-
 ```
 ### Comprovació Homoscedasticitat
 Comprovació homoscedasticitat per la variable chol (unica variable amb normalitat en la variancia) amb els seguents grups:
@@ -267,30 +253,22 @@ sex, cp, fbs, restecg, exng, slp, thall, output
 columns = c("name1","name2","homoscedasticitat")
 df = data.frame(matrix(nrow = 0, ncol = length(columns)))
 colnames(df) = columns
-
 chol <- data_heart[["chol"]]
-
-
-
 for (col in names(data_categorical)) {
   homogeneitat <- TRUE
   test <- leveneTest(chol~data_categorical[[col]])
-
   if(test$`Pr(>F)`[1]<0.05){
     homogeneitat <- FALSE
   }
   df[nrow(df)+1,1:2] <- c("chol", col)
   df[nrow(df),3] <- homogeneitat
-
 }
 print(df)
 ```
 
 ```{r}
-
 data_numerical_nn <- as.data.frame(data_heart %>%
                   select("trtbps","thalachh","oldpeak", "age"))
-
 for(numerical in names(data_numerical_nn)){
   for (col in names(data_categorical)) {
     homogeneitat <- TRUE
@@ -301,11 +279,9 @@ for(numerical in names(data_numerical_nn)){
     }
     df[nrow(df)+1,1:2] <- c(numerical,col)
     df[nrow(df),3] <- homogeneitat
-
   }
 }
 print(df)
-
 ```
 
 # Proves estadístiques:
@@ -321,7 +297,6 @@ Es planteja el següent contrast d'hipòtesis:
 ```{r}
 home_mostra <- data_heart[data_heart$sex == 0,]$output
 dona_mostra <- data_heart[data_heart$sex == 1,]$output
-
 t.test(dona_mostra, home_mostra, alternative = 'less')
 ```
 
@@ -335,7 +310,6 @@ Com es pot veure, es pot confirmar la hipòtesis plantejada ja que el gènere in
 
 # Recuperem les dades numeriques i les normalitzem
 data_numerical_norm <- scale(data_numerical)
-data_categorical
 
 #combinem les dades i creem el dataframe definitiu amb el que farem els models
 data_model = cbind(data_numerical_norm, data_categorical)
@@ -357,7 +331,6 @@ Utilitzem el model Naive Bayes per predir la classificació dels pacients. Per t
 set.seed(123)
 model_nB = naiveBayes(output~., data=train_set)
 y_pred = predict(model_nB, newdata = test_set)
-
 y_pred
 cm_results = confusionMatrix(table(test_set$output, y_pred))
 print(cm_results)
@@ -374,14 +347,12 @@ set.seed(123)
 
 knn_fit <- train(output ~., data = train_set, method = "knn")
 knn_fit
-
 plot(knn_fit)
 ```
 
 # Extracció Dataset
 ```{r}
 res <- c(data_heart, "./heartClean.csv", row.names=TRUE)
-
 ```
 
 
